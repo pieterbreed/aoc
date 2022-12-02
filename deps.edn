@@ -1,1 +1,2 @@
-{:paths ["src" "resources"]}
+{:paths ["src" "resources"]
+ :deps {clj-http/clj-http {:mvn/version "3.12.3"}}}
