@@ -1,7 +1,8 @@
 (ns aoc
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
-            [clj-http.client :as http]))
+            [clj-http.client :as http]
+            [clojure.set :as set]))
 
 (defonce session-cookie (atom (System/getenv "AOC_COOKIE")))
 
@@ -167,4 +168,86 @@
 (comment
 
   (day2-score-strategy-take-2 day2-input) ;; 13448
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Day 3-1
+;; find the item in both compartments of a rucksack
+
+(defn d3-item-type-values
+  "Takes an item type and looks up its value.
+
+  a-z => 1-26
+  A-Z => 26-52"
+  [it]
+  (-> "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      (str/index-of it)
+      inc))
+
+(defn d3-find-common-item
+  "Find the common item (a letter) that exists in both halves of the input (a string)"
+  [items]
+  (let [nr-items (count items)
+        half-index (/ nr-items 2)
+        s1 (set (subs items 0 half-index))
+        s2 (set (subs items half-index nr-items))
+        common-items (set/intersection s1 s2)]
+    (assert (= 1 (count common-items))
+            (str "There must only be one item in common according to the specs:\n"
+                 common-items))
+    (-> common-items first str)))
+
+(comment
+
+  (d3-find-common-item "vJrwpWtwJgWrhcsFMMfFFhFp")
+  (d3-find-common-item "jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL")
+
+  (d3-find-common-item "PmmdzqPrVvPwwTWBwg")
+  (d3-find-common-item "wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn")
+  (d3-find-common-item "ttgJtRGJQctTZtZT")
+  (d3-find-common-item "CrZsJsPPZsGzwwsLwLmpwMDw")
+
+  )
+
+(defn d3-sum-of-priorities
+  "Takes a list of rucksack contents (new-line seperated lines).
+  For each rucksack contents, find the item in common in both halves,
+  find the priority, sum all teh priorities together"
+  [rucksacks]
+  (->> rucksacks
+       (str/split-lines)
+       (map d3-find-common-item)
+       (map d3-item-type-values)
+       (reduce +)))
+
+(comment
+
+  (def test-rucksacks "vJrwpWtwJgWrhcsFMMfFFhFp
+jqHRNqRjqzjGDLGLrsFMfFZSrLrFZsSL
+PmmdzqPrVvPwwTWBwg
+wMqvLMZHhHMvwLHjbvcjnnSBnvTQFn
+ttgJtRGJQctTZtZT
+CrZsJsPPZsGzwwsLwLmpwMDw")
+  (d3-sum-of-priorities test-rucksacks)
+
+  (def day-3-input (day-input-2022 3))
+  (d3-sum-of-priorities day-3-input) ;; 7863
+  )
+
+(defn d3-sum-of-priorities-for-badges
+  "Lines come in groups of 3, one item type is common to all three rucksacks, find it, find its priority, sum those up."
+  [rucksacks]
+  (->> rucksacks
+       (str/split-lines)
+       (partition 3)
+       (map (fn [[a b c]]
+              (str (first (set/intersection (set a) (set b) (set c))))))
+       (map d3-item-type-values)
+       (reduce +)))
+
+(comment
+
+  (d3-sum-of-priorities-for-badges test-rucksacks)
+  (d3-sum-of-priorities-for-badges day-3-input) ;; 2488
+
   )
