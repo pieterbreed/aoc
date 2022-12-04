@@ -251,3 +251,57 @@ CrZsJsPPZsGzwwsLwLmpwMDw")
   (d3-sum-of-priorities-for-badges day-3-input) ;; 2488
 
   )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; day 4
+;;
+
+(def d4-test-input "2-4,6-8
+2-3,4-5
+5-7,7-9
+2-8,3-7
+6-6,4-6
+2-6,4-8")
+
+(defn parse-range
+  "Takes x-y and return [x y]"
+  [r]
+  (let [[a b] (str/split r #"-")]
+    [(Integer/parseInt a)
+     (Integer/parseInt b)]))
+
+(defn d4-prepare-input
+  "Split lines, make 2 groups, represent boundaries of sections"
+  [input]
+  (->> input
+       (str/split-lines)
+       (map #(str/split % #","))
+       (map (juxt (comp parse-range first)
+                  (comp parse-range second)))))
+
+(defn ranges-fully-overlap?
+  "Takes two ranges, already parsed out, returns truthy if one is completely inside another"
+  [[[af at] [bf bt]]]
+  (or (<= af bf bt at)
+      (<= bf af at bt)))
+
+(defn ranges-partially-overlap?
+  "Takes two ranges, already parsed out, returns truthy if one is completely inside another"
+  [[[af at] [bf bt]]]
+  (or (<= af bf at) (<= af bt at)
+      (<= bf af bt) (<= bf at bt)))
+
+(defn d4-find-fully-overlapping-ranges
+  [input p]
+  (->> (d4-prepare-input input)
+       (filter p)))
+
+(comment
+
+  (def d4-input (day-input-2022 4))
+  (count (d4-find-fully-overlapping-ranges d4-input
+                                           ranges-fully-overlap?))
+
+  (count (d4-find-fully-overlapping-ranges d4-input
+                                           ranges-partially-overlap?)) ;; 845
+  )
