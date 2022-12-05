@@ -327,24 +327,127 @@ move 1 from 1 to 2")
   )
 
 ;; simplifying assumption - less than 10 stacks
+(defn- d5-create-column-stack-indexes
+  [sketch-lines]
+  (->> (last sketch-lines)
+       (map vector (range))
+       (filter (comp #(not= % \space) second))
+       (map reverse)
+       (map (fn [[c i]] [(Integer/parseInt (str c)) i]))
+       (into {})))
+
+;; flips the data structure on its side
+;; the stacks or the indices to the result vector
+;; the crates are then in heigh order
 (defn d5-parse-initial-arrangement
   [sketch-lines]
-  (let [column-stack-indexes (->> (last sketch-lines)
-                                  (map vector (range))
-                                  (filter (comp #(not= % \space) second))
-                                  (map reverse)
-                                  (map (fn [[c i]] [(Integer/parseInt (str c)) i]))
-                                  (into {}))
+  (vec (let [column-stack-indexes (d5-create-column-stack-indexes sketch-lines)]
+         (->> (for [l (->> (butlast sketch-lines)
+                           (reverse)
+                           (map-indexed vector))
+                    i (keys column-stack-indexes)
+                    :let [crate (-> l second (get (column-stack-indexes i)))]
+                    :when (and crate
+                               (not= \space crate))]
+                {:height (first l)
+                 :stack  i
+                 :crate  crate})
+              (group-by :stack)
+              (sort-by first)
+              (map (fn [[stack proto-crates]]
+                     (vec (->> proto-crates
+                               (sort-by :height)
+                               (map :crate)))))))))
 
-        ]
+(comment
 
-    ))
+  (def d5-test-arrangement (take-while (comp pos? count)
+                                       (str/split-lines d5-test-input)))
+  (def d5-test-instructions (rest (drop-while (comp pos? count)
+                                              (str/split-lines d5-test-input))))
+  (d5-parse-initial-arrangement d5-test-arrangement)
+  )
 
-(defn d5-prepare-input
+(defn d5-parse-instructions
+  [instructions-lines]
+  (->> instructions-lines
+       (map #(str/split % #" "))
+       (map #(->> (partition 2 %)
+                  (map second)))
+       (map (fn [[move from to]]
+              [(Integer/parseInt move)
+               (dec (Integer/parseInt from))
+               (dec (Integer/parseInt to))]))))
+
+(comment
+
+  (d5-parse-instructions d5-test-instructions)
+
+  )
+
+
+
+(defn d5-1-instruction [state [move from to]]
+  (if (= 0 move) state
+      (-> state
+          (update from #(vec (butlast %)))
+          (update to #(vec (concat % [(-> state (get from) last)])))
+          (d5-instruction [(dec move)
+                           from
+                           to]))))
+
+(comment
+
+  (-> (d5-parse-initial-arrangement d5-test-arrangement)
+      (d5-instruction (first (d5-parse-instructions d5-test-instructions))))
+
+  )
+
+(defn d5-move-stacks
   "two steps
   - build the initial data structure; which crates are on which stacks
   - dsl for moving crates around"
-  [input]
+  [input how]
   (let [input-lines (str/split-lines input)
-        initial-arrangement (d5-parse-initial-arrangement (take-while (comp pos? count input-lines)))])
+        initial-arrangement (d5-parse-initial-arrangement (take-while (comp pos? count)
+                                                                       input-lines))
+        instructions (d5-parse-instructions (rest (drop-while (comp pos? count)
+                                                              input-lines)))]
+    (reduce how initial-arrangement instructions)))
+
+(defn d5-1-solution [instructions]
+  (let [result-state (d5-move-stacks instructions d5-1-instruction)]
+    (apply str (->> result-state
+                    (map last)))))
+
+(defn d5-2-instruction [state [move from to]]
+  (let [crates (->> (get state from)
+                    (reverse)
+                    (take move)
+                    (reverse))]
+    (-> state
+        (update from #(vec (->> %
+                                (reverse)
+                                (drop move)
+                                (reverse))))
+        (update to #(vec (concat % crates))))))
+
+(defn d5-2-solution [instructions]
+  (let [result-state (d5-move-stacks instructions d5-2-instruction)]
+    (apply str (->> result-state
+                    (map last)))))
+
+(comment
+
+
+  (d5-1-solution d5-test-input) ;; "CMZ"
+  (d5-2-solution d5-test-input) ;; "MCD"
+
+  (def d5-input (day-input-2022 5))
+
+  (d5-1-solution d5-input) ;; "QNHWJVJZW"
+  (d5-2-solution d5-input) ;; "BPCZJLFJW"
+
+
+
   )
