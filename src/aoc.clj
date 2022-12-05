@@ -305,3 +305,46 @@ CrZsJsPPZsGzwwsLwLmpwMDw")
   (count (d4-find-fully-overlapping-ranges d4-input
                                            ranges-partially-overlap?)) ;; 845
   )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; day 5 - supply stacks
+
+(def d5-test-input
+  "    [D]
+[N] [C]
+[Z] [M] [P]
+ 1   2   3
+
+move 1 from 2 to 1
+move 3 from 1 to 3
+move 2 from 2 to 1
+move 1 from 1 to 2")
+
+(comment
+
+  (def d5-input (day-input-2022 5))
+
+  )
+
+;; simplifying assumption - less than 10 stacks
+(defn d5-parse-initial-arrangement
+  [sketch-lines]
+  (let [column-stack-indexes (->> (last sketch-lines)
+                                  (map vector (range))
+                                  (filter (comp #(not= % \space) second))
+                                  (map reverse)
+                                  (map (fn [[c i]] [(Integer/parseInt (str c)) i]))
+                                  (into {}))
+
+        ]
+
+    ))
+
+(defn d5-prepare-input
+  "two steps
+  - build the initial data structure; which crates are on which stacks
+  - dsl for moving crates around"
+  [input]
+  (let [input-lines (str/split-lines input)
+        initial-arrangement (d5-parse-initial-arrangement (take-while (comp pos? count input-lines)))])
+  )
