@@ -392,7 +392,7 @@ move 1 from 1 to 2")
       (-> state
           (update from #(vec (butlast %)))
           (update to #(vec (concat % [(-> state (get from) last)])))
-          (d5-instruction [(dec move)
+          (d5-1-instruction [(dec move)
                            from
                            to]))))
 
@@ -449,5 +449,42 @@ move 1 from 1 to 2")
   (d5-2-solution d5-input) ;; "BPCZJLFJW"
 
 
+
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; day 6
+;; unique sequence of 4 characters in a stream
+
+(def d6-test-input-1 "mjqjpqmgbljsphdztnvjfqwrcgsmlb")
+(def d6-test-input-2 "bvwbjplbgvbhsrlpgdmjqwftvncz")
+(def d6-test-input-3 "nppdvjthqldpwncqszvftbrmjlhg")
+(def d6-test-input-4 "nznrnfrfntjfmvfwmzdfjlvtqnbhcprsg")
+(def d6-test-input-5 "zcfzfwzzqfrljwzlrfnpqdbhtmscgvjw")
+
+(defn d6 [input packet-size]
+  (let [[i _] (->> (map vector
+                        (range)
+                        (partition packet-size 1 input))
+                   (filter (fn [[_ chars]] (= packet-size (count (set chars)))))
+                   first)]
+    (+ i packet-size)))
+
+(def d6-1 #(d6 % 4))
+(def d6-2 #(d6 % 14))
+
+(comment
+
+  (def d6-input (day-input-2022 6))
+
+  (d6-1 d6-test-input-1);; 7
+  (d6-1 d6-test-input-2);; 5
+  (d6-1 d6-test-input-3);; 6
+  (d6-1 d6-test-input-4);; 10
+  (d6-1 d6-test-input-5);; 11
+
+  (d6-1 d6-input) ;; 1929
+
+  (d6-2 d6-input);; 3298
 
   )
