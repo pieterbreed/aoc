@@ -1,8 +1,10 @@
 (ns aoc
   (:require [clojure.string :as str]
             [clojure.java.io :as io]
+            [clojure.zip :as zip]
             [clj-http.client :as http]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [clojure.test :as t :refer [deftest is]]))
 
 (defonce session-cookie (atom (System/getenv "AOC_COOKIE")))
 
@@ -486,5 +488,300 @@ move 1 from 1 to 2")
   (d6-1 d6-input) ;; 1929
 
   (d6-2 d6-input);; 3298
+
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; day 7
+;;
+
+(def d7-test-input
+  "$ cd /
+$ ls
+dir a
+14848514 b.txt
+8504156 c.dat
+dir d
+$ cd a
+$ ls
+dir e
+29116 f
+2557 g
+62596 h.lst
+$ cd e
+$ ls
+584 i
+$ cd ..
+$ cd ..
+$ cd d
+$ ls
+4060174 j
+8033020 d.log
+5626152 d.ext
+7214296 k")
+
+(def d7-default-state
+  {:current-dir []
+   :fs          {}})
+
+(defn d7-parse-line
+  "Takes a state item and input with output, and updates the state"
+  [s [cmd & output]]
+  (let [cmd' (subs cmd 2)]
+    (cond
+      (str/starts-with? cmd' "cd")
+      (let [dest (-> cmd'
+                     (str/split #" ")
+                     second)]
+        (cond
+          (= "/" dest)
+          (assoc s :current-dir [])
+
+          (= ".." dest)
+          (update s :current-dir (comp vec butlast))
+
+          :else
+          (update s :current-dir conj dest)))
+
+      (= "ls" cmd')
+      (update-in s (concat [:fs] (:current-dir s))
+                 merge
+                 (->> output
+                      (map (fn [ls-output-line]
+                             (let [[dir-or-size name] (str/split ls-output-line #" ")]
+                               (if-not (= "dir" dir-or-size)
+                                 [name (Integer/parseInt dir-or-size)]))))
+                      (into {}))))))
+
+(comment
+
+  (d7-parse-line d7-default-state
+                 ["$ cd /"])
+
+  (d7-parse-line d7-default-state
+                 ["$ cd a"])
+
+  (d7-parse-line d7-default-state
+                 ["$ ls" "dir e" "29116 f" "2557 g" "62596 h.lst"])
+  {:current-dir []
+   :fs          {"f"     29116
+                 "g"     2557
+                 "h.lst" 62596}}
+
+  )
+
+(defn d7-split-input
+  "Takes input; split it in groups by input and associating output with correct input in a group"
+  [input]
+  (let [{:keys [current
+                history]}
+        (->> input
+             (str/split-lines)
+             (reduce (fn [{:keys [history
+                                  current]
+                           :as   acc}
+                          l]
+                       (if (str/starts-with? l "$")
+                         (cond-> acc
+                           current (update :history conj current)
+                           true    (assoc  :current [l]))
+                         (update acc :current conj l)))
+                     {:history []
+                      :current nil}))]
+    (cond-> history
+      current (conj current))))
+
+(defn d7-build-fs [input]
+  (->> input
+       d7-split-input
+       (reduce d7-parse-line
+               d7-default-state)))
+
+(defn d7-recurse-fs
+  "Takes an fs (map) and summarizes each directory"
+  ([fs summarize-fn] (d7-recurse-fs fs summarize-fn nil))
+  ([fs summarize-fn path]
+   (let [{subdirs true
+          files   false}
+         (group-by (comp map? second) fs)
+
+         subdir-summaries (->> subdirs
+                               (mapcat (fn [[n sd]]
+                                         (d7-recurse-fs sd
+                                                        summarize-fn
+                                                        (conj (vec path) n)))))
+
+         files-summary [path (summarize-fn (concat files subdir-summaries))]]
+     (vec (concat
+           [files-summary]
+           subdir-summaries)))))
+
+(deftest d7-recurse-fs-test-1
+  (is (= [[nil 123]]
+         (d7-recurse-fs {"a" 100
+                         "b" 23}
+                        (fn [xs]
+                          (->> xs
+                               (filter (comp string? first))
+                               (map second)
+                               (reduce + 0)))))))
+
+(deftest d7-recurse-fs-test2
+  (is (= [[nil   123]
+          [["c"] 15]
+          [["f"] 20]]
+
+         (d7-recurse-fs {"a" 100
+                         "b" 23
+                         "c" {"d" 10
+                              "e" 5}
+                         "f" {"g" 20}}
+                        (fn [xs]
+                          (->> xs
+                               (filter (comp string? first))
+                               (map second)
+                               (reduce + 0)))))))
+
+(deftest d7-recurse-fs-test3
+  (is (= [[nil   123]
+          [["c"] 15]
+          [["c" "f"] 20]]
+
+         (d7-recurse-fs {"a" 100
+                         "b" 23
+                         "c" {"d" 10
+                              "e" 5
+                              "f" {"g" 20}}}
+                        (fn [xs]
+                          (->> xs
+                               (filter (comp string? first))
+                               (map second)
+                               (reduce + 0)))))))
+
+(deftest d7-recurse-fs-include-subdirs-in-summary-test
+  (is (= [[nil   (+ 100 23
+                    (+ 10 5 20)
+                    20)]
+          [["c"] (+ 10 5 20)]
+          [["c" "f"] 20]]
+
+         (d7-recurse-fs {"a" 100
+                         "b" 23
+                         "c" {"d" 10
+                              "e" 5
+                              "f" {"g" 20}}}
+                        (fn [xs]
+                          (->> xs
+                               ;; (filter (comp string? first))
+                               (map second)
+                               (reduce + 0)))))))
+
+(defn d7-solve-1
+  [input]
+  (let [fs (:fs (d7-build-fs input))
+        summaries (d7-recurse-fs fs
+                                 (fn [xs]
+                                   (->> xs
+                                        (map second)
+                                        (reduce + 0))))]
+    (->> summaries
+         (filter (comp #(< % 100000) second))
+         (map second)
+         (reduce + 0))))
+
+(defn d7-total-fs-usage
+  [fs]
+  (let [summary-fn (fn [xs]
+                     (->> xs
+                          (filter (comp string? first))
+                          (map second)
+                          (reduce + 0)))
+        summary (d7-recurse-fs fs
+                               summary-fn)]
+    (->> summary
+         (map second)
+         (reduce + 0))))
+
+(defn d7-solve-2 [input]
+  (let [total-disk-space 70000000
+        required-disk-space 30000000
+
+        fs (:fs (d7-build-fs input))
+        total-used (d7-total-fs-usage fs)
+        current-free (- total-disk-space total-used)
+        require-at-least (- required-disk-space current-free)
+
+        summary-fn (fn [xs]
+                     (->> xs
+                          (filter (comp string? first))
+                          (map second)
+                          (reduce + 0)))
+        summary (d7-recurse-fs fs
+                               summary-fn)]
+    (->> summary
+         (map (fn [[path _]] [path (d7-total-fs-usage (get-in fs path))]))
+         (filter (fn [[_ consumed-space]] (< require-at-least consumed-space)))
+         (sort-by second)
+         first
+         second)))
+
+(comment
+
+  (d7-total-fs-usage (:fs (d7-build-fs d7-test-input))) ;; 48381165
+
+
+  (d7-recurse-fs (:fs (d7-build-fs d7-test-input))
+                 (fn [xs]
+                   (->> xs
+                        (map second)
+                        (filter #(< % 100000))
+                        (reduce + 0))))
+
+  (d7-solve-1 d7-test-input) ;; 95437
+  (def d7-input (day-input-2022 7))
+  (d7-solve-1 d7-input) ;; 1118405
+  (d7-solve-2 d7-test-input) ;; 24933642
+  (d7-solve-2 d7-input) ;; 12545514
+
+  (d7-split-input d7-test-input)
+  [["$ cd /"]
+   ["$ ls" "dir a" "14848514 b.txt" "8504156 c.dat" "dir d"]
+   ["$ cd a"]
+   ["$ ls" "dir e" "29116 f" "2557 g" "62596 h.lst"]
+   ["$ cd e"]
+   ["$ ls" "584 i"]
+   ["$ cd .."]
+   ["$ cd .."]
+   ["$ cd d"]
+   ["$ ls" "4060174 j" "8033020 d.log" "5626152 d.ext" "7214296 k"]
+   ]
+
+  (d7-build-fs d7-test-input)
+  {:current-dir ["d"]
+   :fs          {"b.txt" 14848514
+                 "c.dat" 8504156
+                 "a"     {"f"     29116
+                          "g"     2557
+                          "h.lst" 62596
+                          "e"     {"i" 584}}
+                 "d"     {"j"     4060174
+                          "d.log" 8033020
+                          "d.ext" 5626152
+                          "k"     7214296}
+                 }}
+
+  (d7-solve-1 d7-test-input)
+
+  (->> (map-zipper (:fs (d7-build-fs d7-test-input)))
+       (iterate zip/next)
+       (take-while (complement zip/end?))
+       (filter zip/branch?)
+       ;; count
+       (map (juxt zip/path zip/node))
+       )
+
+  (-> (map-zipper (:fs (d7-build-fs d7-test-input)))
+      (zip/down)
+      (zip/branch?))
 
   )
