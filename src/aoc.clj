@@ -785,3 +785,191 @@ $ ls
       (zip/branch?))
 
   )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; day 8
+;; trees in a grid
+
+(def d8-tree-heights
+  {\0 0
+   \1 1
+   \2 2
+   \3 3
+   \4 4
+   \5 5
+   \6 6
+   \7 7
+   \8 8
+   \9 9})
+
+(defn d8-parse-input
+  [input]
+  (->> input
+       (str/split-lines)
+       (map #(map d8-tree-heights %))))
+
+(defn d8-dimensions
+  "takes a parsed tree-map (seq of seq of ints) and determines the dimension in height and width. assumes all widths are the same"
+  [tree-map]
+  {:width  (-> tree-map first count)
+   :height (-> tree-map count)})
+
+(defn d8-heights-fns [tree-map x y]
+  (let [{:keys [height
+                width]}
+        (d8-dimensions tree-map)]
+    {:heights/north #(->> (range y -1 -1)  (map (fn [y'] (-> tree-map (nth y') (nth x)))))
+     :heights/south #(->> (range y height) (map (fn [y'] (-> tree-map (nth y') (nth x)))))
+     :heights/west  #(->> (range x -1 -1)  (map (fn [x'] (-> tree-map (nth y)  (nth x')))))
+     :heights/east  #(->> (range x width)  (map (fn [x'] (-> tree-map (nth y)  (nth x')))))}))
+
+(defn first-is-visible-from-outside
+  [[h & rst]]
+  (->> rst
+       (filter (fn [x] (>= x h)))
+       (count)
+       (zero?)))
+
+(defn d8-is-visible?
+  "Low-effort, probably n^3 behaviour. Brute-force algorithm."
+  [tree-map x y]
+  (let [{:keys [width height]}
+        (d8-dimensions tree-map)
+
+        {:heights/keys [north
+                        south
+                        west
+                        east]}
+        (d8-heights-fns tree-map x y)]
+    (or (= 0 x)
+        (= 0 y)
+        (= (dec width) x)
+        (= (dec height) y)
+        (first-is-visible-from-outside (north))
+        (first-is-visible-from-outside (south))
+        (first-is-visible-from-outside (east))
+        (first-is-visible-from-outside (west)))))
+
+(def d8-test-input
+  "30373
+25512
+65332
+33549
+35390")
+(def d8-test-treemap (d8-parse-input d8-test-input))
+(deftest d8-1
+  (is (not (d8-is-visible? d8-test-treemap 2 2)))
+  (is (not (d8-is-visible? d8-test-treemap 3 1)))
+  (is (not (d8-is-visible? d8-test-treemap 1 3)))
+  (is (not (d8-is-visible? d8-test-treemap 3 3)))
+  (is (d8-is-visible? d8-test-treemap 1 1))
+  (is (d8-is-visible? d8-test-treemap 2 1))
+  (is (d8-is-visible? d8-test-treemap 1 2))
+  (is (d8-is-visible? d8-test-treemap 3 2)))
+
+(defn d8-solve-1
+  "Count visible trees"
+  [input]
+  (let [tree-map (d8-parse-input input)
+        {:keys [height
+                width]}  (d8-dimensions tree-map)]
+    (count (for [x (range height)
+                 y (range width)
+                 :when (d8-is-visible? tree-map x y)]
+             :visible)))
+  )
+
+(comment
+
+  (d8-solve-1 d8-test-input) ;;
+  (def d8-input (day-input-2022 8))
+  (time (d8-solve-1 d8-input)) ;; 1818
+  ;; "Elapsed time: 1917.873636 msecs"
+  ;; "Elapsed time: 1880.310128 msecs"
+  ;; "Elapsed time: 1879.676464 msecs"
+  ;; "Elapsed time: 1867.073619 msecs"
+
+  (d8-is-visible? d8-test-treemap 2 4)
+  (d8-is-visible? d8-test-treemap 2 2)
+
+  (def d8-test-input'
+    "30373
+25512
+65332
+65332
+33549
+35390")
+
+  (-> (d8-parse-input d8-test-input')
+      d8-dimensions)
+
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; day 8-2
+
+(defn take-until
+  ([p coll]
+   (reduce (fn [acc x]
+             (let [next (concat acc [x])]
+               (if (p x)
+                 (reduced next)
+                 next)))
+           '()
+           coll)))
+
+(deftest take-until-tests
+  (is (= (seq [1 2 3 4 6])
+         (seq (take-until #(>= % 5) [1 2 3 4 6 4 3]))))
+  (is (= (seq [1 2 3 4 4 3])
+         (seq (take-until #(>= % 5) [1 2 3 4  4 3]))))
+  (is (= (seq [1 2 3 4 5])
+         (seq (take-until #(>= % 5) [1 2 3 4 5])))))
+
+(defn d8-part-2-distance-can-see-in-direction
+  [direction]
+  (let [[this-h & rst] (direction)]
+    (->> rst
+         (take-until (fn [h] (>= h this-h)))
+         (count))))
+
+(defn d8-viewing-distances [tree-map x y]
+  (let [{:heights/keys [north
+                        south
+                        west
+                        east]}
+        (d8-heights-fns tree-map x y)]
+
+    (* (d8-part-2-distance-can-see-in-direction north)
+       (d8-part-2-distance-can-see-in-direction south)
+       (d8-part-2-distance-can-see-in-direction west)
+       (d8-part-2-distance-can-see-in-direction east))))
+
+
+(deftest d8-part-2-viewing-distances-test
+  (is (= 4 (d8-viewing-distances (d8-parse-input d8-test-input)
+                                 2 1)))
+  (is (= 8 (d8-viewing-distances (d8-parse-input d8-test-input)
+                                 2 3))))
+
+
+(defn d8-part-2-solve
+  [input]
+  (let [tree-map
+        (d8-parse-input input)
+
+        {:keys [height width]}
+        (d8-dimensions tree-map)]
+    (->> (for [x (range 1 (dec width))
+               y (range 1 (dec height))]
+           (d8-viewing-distances tree-map x y))
+         (sort)
+         (reverse)
+         (first))))
+
+(comment
+
+  (d8-part-2-solve d8-test-input)
+  (d8-part-2-solve d8-input) ;; 368368
+
+  )
