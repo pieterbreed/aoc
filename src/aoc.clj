@@ -1349,9 +1349,9 @@ $ ls
                     min-x min-y]} & _] (o/query-all session ::map-boundaries)
            valid? (d9-h-and-t-valid? [head-x head-y]
                                      [tail-x tail-y])
-           map (apply str (->> (for [y (range min-y (inc max-y))
-                                     x (range min-x (inc max-x))
-                                     :let [eol? (= x max-x)]]
+           map (apply str (->> (for [y (range (dec min-y) (+ 2 max-y))
+                                     x (range (dec min-x) (+ 2 max-x))
+                                     :let [eol? (= x (+ 1 max-x))]]
                                  (str (cond
                                         (= [x y] [head-x head-y])   \H
                                         (= [x y] [tail-x tail-y])   \T
@@ -1359,12 +1359,12 @@ $ ls
                                         :else                       \.)
                                       (when eol? \newline)))))]
        (o/insert! ::map ::position map)
-       (println (str "--------------------"
-                     (str "Printing a position map -------------------------\n"
-                          "Head: " head-x " " head-y "; Tail: " tail-x " " tail-y".\n"
-                          (if valid? "Valid." "Invalid.") "\n"
-                          map)
-                     "--------------------")))]
+       (tap> (str "--------------------"
+                  (str "Printing a position map -------------------------\n"
+                       "Head: " head-x " " head-y "; Tail: " tail-x " " tail-y".\n"
+                       (if valid? "Valid." "Invalid.") "\n"
+                       map)
+                  "--------------------")))]
 
     ::position-map
     [:what [::map ::position the-map]]}))
@@ -1417,9 +1417,9 @@ $ ls
                  max-x max-y
                  min-x min-y]}]
         (o/query-all session ::map-boundaries)]
-    (apply str (for [y (range min-y (inc max-y))
-                     x (range min-x (inc max-x))
-                     :let [eol? (= x max-x)]]
+    (apply str (for [y (range (dec min-y) (+ 2 max-y))
+                     x (range (dec min-x) (+ 2 max-x))
+                     :let [eol? (= x (+ 1 max-x))]]
                  (str (cond
                         (= [0 0] [x y])
                         \s
@@ -1470,20 +1470,39 @@ R 2")
   (->> input
        str/split-lines
        (map #(str/split % #" "))
-       (map (fn [[d x]] (vector (case d
-                                  "U" ::up
-                                  "D" ::down
-                                  "L" ::left
-                                  "R" ::right)
-                                (Integer/parseInt x))))))
+       (map (fn [[d x]]
+              (vector (case d
+                        "U" ::up
+                        "D" ::down
+                        "L" ::left
+                        "R" ::right)
+                      (Integer/parseInt x))))))
 
-(defn d9-make-head-instructions
+(defn d9-make-head-executor
   [parsed]
-  (for [[direction nr] parsed
-        _ (range nr)]
-    [::move ::head direction]))
+  (->> (for [[direction nr] parsed
+             _ (range nr)]
+         #(d9-move-head % direction))
+       (reverse)
+       (apply comp)))
+
+(defn d9-solve-1 [input]
+  (let [parsed-input (d9-parse-input input)
+        executor (d9-make-head-executor parsed-input)
+        session (d9-start-session)
+        result (executor session)
+        visited-map (d9-map-of-tail-locations result)
+        [{:keys [all-positions]}] (o/query-all result ::keep-track-of-tail-positions)]
+
+    (println visited-map)
+    (count all-positions)))
 
 (comment
+
+  (d9-solve-1 d9-test-input)
+  (def d9-input (day-input-2022 9))
+
+  (time (d9-solve-1 d9-input));; 5735
 
   (-> (d9-parse-input d9-test-input)
       (d9-make-head-instructions))
@@ -1493,6 +1512,7 @@ R 2")
 (comment
 
   (add-tap (bound-fn* clojure.pprint/pprint))
+  (remove-tap (bound-fn* clojure.pprint/pprint))
 
   (-> (d9-start-session)
       (o/insert ::move ::head ::right))
