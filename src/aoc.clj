@@ -1314,9 +1314,22 @@ $ ls
          (-> session
              (o/insert ::head ::x (inc head-x))
              (o/retract ::move ::head)
-             (o/reset!))))
+             (o/reset!))))]
 
-]
+    ::keep-track-of-tail-positions
+    [:what
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+     [::tail ::all-positions all-positions {:then false}]
+     :then-finally
+     (let [{:keys [tail-x
+                   tail-y
+                   all-positions]}
+           (first (o/query-all session ::keep-track-of-tail-positions))]
+       (tap> [:keeping :track :of :tail :position tail-x tail-y])
+       (-> session
+           (o/insert ::tail ::all-positions (set (conj all-positions [tail-x tail-y])))
+           (o/reset!)))]
 
     ::print-position-map
     [:what
@@ -1370,6 +1383,7 @@ $ ls
       (o/insert ::head ::y (or head-y 0))
       (o/insert ::max {::x 3 ::y 3})
       (o/insert ::min {::x -3 ::y -3})
+      (o/insert ::tail ::all-positions #{})
       (o/fire-rules)))
 
 (comment
@@ -1385,31 +1399,58 @@ $ ls
 
   )
 
-(defn move-head
+(defn d9-move-head
   [session direction]
   {:pre [(#{::right ::left ::up ::down} direction)]}
   (-> session
       (o/insert ::move ::head direction)
       (o/fire-rules)))
 
+(defn d9-map-of-tail-locations
+  [session]
+  (let [[{:keys [all-positions]}]
+        (o/query-all session
+                     ::keep-track-of-tail-positions)
+
+        [{:keys [head-x head-y
+                 tail-x tail-y
+                 max-x max-y
+                 min-x min-y]}]
+        (o/query-all session ::map-boundaries)]
+    (apply str (for [y (range min-y (inc max-y))
+                     x (range min-x (inc max-x))
+                     :let [eol? (= x max-x)]]
+                 (str (cond
+                        (= [0 0] [x y])
+                        \s
+
+                        (all-positions [x y])
+                        \#
+
+                        :else
+                        \.)
+                      (when eol? \newline))))))
+
 (comment
 
   (d9-northeast-of? [1 -2] [-1 -1])
 
   (let [r (-> (d9-start-session)
-              (move-head ::up)
-              (move-head ::up)
-              (move-head ::down)
-              (move-head ::right)
-              (move-head ::left)
-              (move-head ::right)
-              (move-head ::right)
-              (move-head ::down)
-              (move-head ::down))]
+              (d9-move-head ::up)
+              (d9-move-head ::up)
+              (d9-move-head ::down)
+              (d9-move-head ::right)
+              (d9-move-head ::left)
+              (d9-move-head ::right)
+              (d9-move-head ::right)
+              (d9-move-head ::down)
+              (d9-move-head ::down))]
     (println "\n\n----------------------------------------\n\n")
     (println (:the-map (first (o/query-all r ::position-map))))
     (clojure.pprint/pprint [[::tail (first (o/query-all r ::tail))]
-                            [::head (first (o/query-all r ::head))]])
+                            [::head (first (o/query-all r ::head))]
+                            [::tail-positions (first (o/query-all r ::keep-track-of-tail-positions))]])
+    (println (d9-map-of-tail-locations r))
     (flush))
 
 
@@ -1428,11 +1469,24 @@ R 2")
   [input]
   (->> input
        str/split-lines
-       (map #(str/split % #" "))))
+       (map #(str/split % #" "))
+       (map (fn [[d x]] (vector (case d
+                                  "U" ::up
+                                  "D" ::down
+                                  "L" ::left
+                                  "R" ::right)
+                                (Integer/parseInt x))))))
+
+(defn d9-make-head-instructions
+  [parsed]
+  (for [[direction nr] parsed
+        _ (range nr)]
+    [::move ::head direction]))
 
 (comment
 
-  (d9-parse-input d9-test-input)
+  (-> (d9-parse-input d9-test-input)
+      (d9-make-head-instructions))
 
   )
 
