@@ -1,2 +1,3 @@
 {:paths ["src" "resources"]
- :deps {clj-http/clj-http {:mvn/version "3.12.3"}}}
+ :deps  {clj-http/clj-http      {:mvn/version "3.12.3"}
+         net.sekao/odoyle-rules {:mvn/version "1.0.0"}}}

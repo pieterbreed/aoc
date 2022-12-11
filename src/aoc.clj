@@ -1068,25 +1068,25 @@ $ ls
   (o/ruleset
    {::head
     [:what
-     [::head ::x x]
-     [::head ::y y]
+     [::head ::x head-x]
+     [::head ::y head-y]
 
      :then
-     (tap> [:HEAD :position [x y]])]
+     (tap> [:HEAD :position [head-x head-y]])]
 
     ::tail
     [:what
-     [::tail ::x x]
-     [::tail ::y y]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
 
      :then
-     (tap> [:TAIL :position [x y]])]
+     (tap> [:TAIL :position [tail-x tail-y]])]
 
 
     ::map-boundaries
     [:what
-     [::head ::x x]
-     [::head ::y y]
+     [::head ::x head-x]
+     [::head ::y head-y]
      [::tail ::x tail-x]
      [::tail ::y tail-y]
      [::max ::y max-y {:then false}]
@@ -1095,21 +1095,21 @@ $ ls
      [::min ::x min-x {:then false}]
 
      :then
-     (o/insert! ::max {::y (max max-y y tail-y)
-                       ::x (max max-x x tail-x)})
-     (o/insert! ::mi {::y (min min-y  y tail-y)
-                      ::x (min min-x  x tail-x)})]
+     (o/insert! ::max {::y (max max-y head-y tail-y)
+                       ::x (max max-x head-x tail-x)})
+     (o/insert! ::mi {::y (min min-y  head-y tail-y)
+                      ::x (min min-x  head-x tail-x)})]
 
     ::shift-tail-north
     [:what
-     [::head ::x head-x]
-     [::head ::y head-y]
-     [::tail ::x tail-x]
-     [::tail ::y tail-y]
+     [::head ::x head-x {:then not=}]
+     [::head ::y head-y {:then not=}]
+     [::tail ::x tail-x {:then false}]
+     [::tail ::y tail-y {:then false}]
 
      :when
      (not (d9-h-and-t-valid? [head-x head-y]
-                             [tail-y tail-y]))
+                             [tail-x tail-y]))
      (d9-north-of? [head-x head-y]
                    [tail-x tail-y])
 
@@ -1119,14 +1119,14 @@ $ ls
 
     ::shift-tail-south
     [:what
-     [::head ::x head-x]
-     [::head ::y head-y]
-     [::tail ::x tail-x]
-     [::tail ::y tail-y]
+     [::head ::x head-x {:then not=}]
+     [::head ::y head-y {:then not=}]
+     [::tail ::x tail-x {:then false}]
+     [::tail ::y tail-y {:then false}]
 
      :when
      (not (d9-h-and-t-valid? [head-x head-y]
-                             [tail-y tail-y]))
+                             [tail-x tail-y]))
      (d9-south-of? [head-x head-y]
                    [tail-x tail-y])
 
@@ -1136,14 +1136,14 @@ $ ls
 
     ::shift-tail-west
     [:what
-     [::head ::x head-x]
-     [::head ::y head-y]
-     [::tail ::x tail-x]
-     [::tail ::y tail-y]
+     [::head ::x head-x {:then not=}]
+     [::head ::y head-y {:then not=}]
+     [::tail ::x tail-x {:then false}]
+     [::tail ::y tail-y {:then false}]
 
      :when
      (not (d9-h-and-t-valid? [head-x head-y]
-                             [tail-y tail-y]))
+                             [tail-x tail-y]))
      (d9-west-of? [head-x head-y]
                   [tail-x tail-y])
 
@@ -1153,14 +1153,14 @@ $ ls
 
     ::shift-tail-east
     [:what
-     [::head ::x head-x]
-     [::head ::y head-y]
-     [::tail ::x tail-x]
-     [::tail ::y tail-y]
+     [::head ::x head-x {:then not=}]
+     [::head ::y head-y {:then not=}]
+     [::tail ::x tail-x {:then false}]
+     [::tail ::y tail-y {:then false}]
 
      :when
      (not (d9-h-and-t-valid? [head-x head-y]
-                             [tail-y tail-y]))
+                             [tail-x tail-y]))
      (d9-east-of? [head-x head-y]
                   [tail-x tail-y])
 
@@ -1170,14 +1170,14 @@ $ ls
 
     ::shift-tail-northwest
     [:what
-     [::head ::x head-x]
-     [::head ::y head-y]
+     [::head ::x head-x {:then not=}]
+     [::head ::y head-y {:then not=}]
      [::tail ::x tail-x {:then false}]
      [::tail ::y tail-y {:then false}]
 
      :when
      (not (d9-h-and-t-valid? [head-x head-y]
-                             [tail-y tail-y]))
+                             [tail-x tail-y]))
      (d9-northwest-of? [head-x head-y]
                        [tail-x tail-y])
 
@@ -1188,14 +1188,14 @@ $ ls
 
     ::shift-tail-northeast
     [:what
-     [::head ::x head-x]
-     [::head ::y head-y]
-     [::tail ::x tail-x]
-     [::tail ::y tail-y]
+     [::head ::x head-x {:then not=}]
+     [::head ::y head-y {:then not=}]
+     [::tail ::x tail-x {:then false}]
+     [::tail ::y tail-y {:then false}]
 
      :when
      (not (d9-h-and-t-valid? [head-x head-y]
-                             [tail-y tail-y]))
+                             [tail-x tail-y]))
      (d9-northeast-of? [head-x head-y]
                        [tail-x tail-y])
 
@@ -1206,14 +1206,14 @@ $ ls
 
     ::shift-tail-southwest
     [:what
-     [::head ::x head-x]
-     [::head ::y head-y]
-     [::tail ::x tail-x]
-     [::tail ::y tail-y]
+     [::head ::x head-x {:then not=}]
+     [::head ::y head-y {:then not=}]
+     [::tail ::x tail-x {:then false}]
+     [::tail ::y tail-y {:then false}]
 
      :when
      (not (d9-h-and-t-valid? [head-x head-y]
-                             [tail-y tail-y]))
+                             [tail-x tail-y]))
      (d9-southwest-of? [head-x head-y]
                        [tail-x tail-y])
 
@@ -1224,14 +1224,14 @@ $ ls
 
     ::shift-tail-southeast
     [:what
-     [::head ::x head-x]
-     [::head ::y head-y]
-     [::tail ::x tail-x]
-     [::tail ::y tail-y]
+     [::head ::x head-x {:then not=}]
+     [::head ::y head-y {:then not=}]
+     [::tail ::x tail-x {:then false}]
+     [::tail ::y tail-y {:then false}]
 
      :when
      (not (d9-h-and-t-valid? [head-x head-y]
-                             [tail-y tail-y]))
+                             [tail-x tail-y]))
      (d9-southeast-of? [head-x head-y]
                        [tail-x tail-y])
 
@@ -1242,67 +1242,79 @@ $ ls
 
     ::move-head-up
     [:what
-     [::head ::x head-x]
+     [::head ::x head-x {:then false}]
      [::head ::y head-y {:then false}]
-     [::tail ::x tail-x]
-     [::tail ::y tail-y]
+     [::tail ::x tail-x {:then false}]
+     [::tail ::y tail-y {:then false}]
      [::move ::head ::up]
 
      :then
      (if-not (d9-h-and-t-valid? [head-x head-y]
-                                [tail-y tail-y])
+                                [tail-x tail-y])
        (tap> [:move :rejected :up])
        (do
          (tap> [:move :head :up])
-         (o/insert! ::head ::y (dec head-y))))]
+         (-> session
+             (o/insert ::head ::y (dec head-y))
+             (o/retract ::move ::head)
+             (o/reset!))))]
 
     ::move-head-down
     [:what
      [::move ::head ::down]
-     [::head ::x head-x]
+     [::head ::x head-x {:then false}]
      [::head ::y head-y {:then false}]
-     [::tail ::x tail-x]
-     [::tail ::y tail-y]
+     [::tail ::x tail-x {:then false}]
+     [::tail ::y tail-y {:then false}]
 
      :then
      (if-not (d9-h-and-t-valid? [head-x head-y]
-                                [tail-y tail-y])
+                                [tail-x tail-y])
        (tap> [:move :rejected :down])
        (do
          (tap> [:move :head :down])
-         (o/insert! ::head ::y (inc head-y))))]
+         (-> session
+             (o/insert ::head ::y (inc head-y))
+             (o/retract ::move ::head)
+             (o/reset!))))]
 
     ::move-head-left
     [:what
      [::head ::x head-x {:then false}]
-     [::head ::y head-y]
-     [::tail ::x tail-x]
-     [::tail ::y tail-y]
+     [::head ::y head-y {:then false}]
+     [::tail ::x tail-x {:then false}]
+     [::tail ::y tail-y {:then false}]
      [::move ::head ::left]
 
      :then
      (if-not (d9-h-and-t-valid? [head-x head-y]
-                                [tail-y tail-y])
+                                [tail-x tail-y])
        (tap> [:move :rejected :left])
        (do
          (tap> [:move :head :left])
-         (o/insert! ::head ::x (dec head-x))))]
+         (-> session
+             (o/insert ::head ::x (dec head-x))
+             (o/retract ::move ::head)
+             (o/reset!))))]
 
     ::move-head-right
     [:what
      [::head ::x head-x {:then false}]
-     [::head ::y head-y]
-     [::tail ::x tail-x]
-     [::tail ::y tail-y]
+     [::head ::y head-y {:then false}]
+     [::tail ::x tail-x {:then false}]
+     [::tail ::y tail-y {:then false}]
      [::move ::head ::right]
 
      :then
      (if-not (d9-h-and-t-valid? [head-x head-y]
-                                [tail-y tail-y])
+                                [tail-x tail-y])
        (tap> [:move :rejected :right])
        (do
          (tap> [:move :head :right])
-         (o/insert! ::head ::x (inc head-x))))
+         (-> session
+             (o/insert ::head ::x (inc head-x))
+             (o/retract ::move ::head)
+             (o/reset!))))
 
 ]
 
@@ -1312,14 +1324,18 @@ $ ls
      [::head ::y head-y]
      [::tail ::x tail-x]
      [::tail ::y tail-y]
-     [::max ::y max-y]
-     [::min ::y min-y]
-     [::max ::x max-x]
-     [::min ::x min-x]
+     [::max ::y max-y {:then false}]
+     [::min ::y min-y {:then false}]
+     [::max ::x max-x {:then false}]
+     [::min ::x min-x {:then false}]
 
-     :then
-     (let [valid? (d9-h-and-t-valid? [head-x head-y]
-                                     [tail-y tail-y])
+     :then-finally
+     (let [[{:keys [head-x head-y
+                    tail-x tail-y
+                    max-x max-y
+                    min-x min-y]} & _] (o/query-all session ::map-boundaries)
+           valid? (d9-h-and-t-valid? [head-x head-y]
+                                     [tail-x tail-y])
            map (apply str (->> (for [y (range min-y (inc max-y))
                                      x (range min-x (inc max-x))
                                      :let [eol? (= x max-x)]]
@@ -1343,18 +1359,31 @@ $ ls
 
 
 (defn d9-start-session
-  []
+  [& {:keys [tail-x tail-y head-x head-y]}]
   (tap> ["------------------------------------"])
   (tap> [:starting :new :session ])
   (tap> ["------------------------------------"])
   (-> (reduce o/add-rule (o/->session) d9-rules)
-      (o/insert ::tail ::x 0)
-      (o/insert ::tail ::y 0)
-      (o/insert ::head ::x 0)
-      (o/insert ::head ::y 0)
+      (o/insert ::tail ::x (or tail-x 0))
+      (o/insert ::tail ::y (or tail-y 0))
+      (o/insert ::head ::x (or head-x 0))
+      (o/insert ::head ::y (or head-y 0))
       (o/insert ::max {::x 3 ::y 3})
       (o/insert ::min {::x -3 ::y -3})
       (o/fire-rules)))
+
+(comment
+
+  ::map-boundaries
+
+  (-> (d9-start-session :head-x -2 :head-y 1
+                        :tail-x 0 :tail-y 0)
+      (o/query-all ::map-boundaries))
+
+
+  (d9-h-and-t-valid? [2 0] [1 0])
+
+  )
 
 (defn move-head
   [session direction]
@@ -1370,9 +1399,13 @@ $ ls
   (let [r (-> (d9-start-session)
               (move-head ::up)
               (move-head ::up)
+              (move-head ::down)
+              (move-head ::right)
+              (move-head ::left)
               (move-head ::right)
               (move-head ::right)
-              (move-head ::right))]
+              (move-head ::down)
+              (move-head ::down))]
     (println "\n\n----------------------------------------\n\n")
     (println (:the-map (first (o/query-all r ::position-map))))
     (clojure.pprint/pprint [[::tail (first (o/query-all r ::tail))]
@@ -1409,6 +1442,8 @@ R 2")
 
   (-> (d9-start-session)
       (o/insert ::move ::head ::right))
+
+  (-> (d9-start-session))
 
   (-> (reduce o/add-rule (o/->session) rules)
       (o/insert ::tail ::x 0)
