@@ -4,7 +4,8 @@
             [clojure.zip :as zip]
             [clj-http.client :as http]
             [clojure.set :as set]
-            [clojure.test :as t :refer [deftest is]]))
+            [clojure.test :as t :refer [deftest is]]
+            [odoyle.rules :as o]))
 
 (defonce session-cookie (atom (System/getenv "AOC_COOKIE")))
 
@@ -971,5 +972,479 @@ $ ls
 
   (d8-part-2-solve d8-test-input)
   (d8-part-2-solve d8-input) ;; 368368
+
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; day 9
+;; rope bridge
+
+(defn d9-h-and-t-valid?
+  [[hx hy] [tx ty]]
+  (and (<= (dec hx) tx (inc hx))
+       (<= (dec hy) ty (inc hy))))
+
+(deftest d9-adjacent-tests
+  (is (d9-h-and-t-valid? [0 0] [0 0]))
+  (is (d9-h-and-t-valid? [1 0] [0 0]))
+  (is (d9-h-and-t-valid? [-1 0] [0 0]))
+  (is (d9-h-and-t-valid? [0 0] [0 1]))
+  (is (d9-h-and-t-valid? [0 0] [0 -1]))
+  (is (d9-h-and-t-valid? [5 5] [5 4]))
+  (is (d9-h-and-t-valid? [5 5] [4 5]))
+
+  (is (not (d9-h-and-t-valid? [-1 -2] [0 -1]))))
+
+(defn d9-north [[x y]] [x (- y 2)])
+(defn d9-south [[x y]] [x (+ y 2)])
+(defn d9-east  [[x y]] [(+ x 2) y])
+(defn d9-west  [[x y]] [(- x 2) y])
+
+(defn d9-north-of? [a b] (= a (d9-north b)))
+(defn d9-south-of? [a b] (= a (d9-south b)))
+(defn d9-west-of?  [a b] (= a (d9-west  b)))
+(defn d9-east-of?  [a b] (= a (d9-east  b)))
+
+(defn d9-northeast-of?
+  [[ax ay]
+   [bx by]]
+  (or (= [ax       ay]
+         [(+ bx 1) (- by 2)])
+      (= [ax       ay]
+         [(+ bx 2) (- by 1)])))
+
+(defn d9-northwest-of?
+  [[ax ay]
+   [bx by]]
+  (or (= [ax       ay]
+         [(- bx 1) (- by 2)])
+      (= [ax       ay]
+         [(- bx 2) (- by 1)])))
+
+(defn d9-southeast-of?
+  [[ax ay]
+   [bx by]]
+  (or (= [ax       ay]
+         [(+ bx 1) (+ by 2)])
+      (= [ax       ay]
+         [(+ bx 2) (+ by 1)])))
+
+(defn d9-southwest-of?
+  [[ax ay]
+   [bx by]]
+  (or (= [ax       ay]
+         [(- bx 1) (+ by 2)])
+      (= [ax       ay]
+         [(- bx 2) (+ by 1)])))
+
+(deftest d9-directions-test
+  (is (d9-north-of? [0 -2] [0 0]))
+  (is (d9-south-of? [0  2] [0 0]))
+  (is (d9-west-of?  [-2 0] [0 0]))
+  (is (d9-east-of?  [2  0] [0 0]))
+
+  (is (d9-northeast-of? [1 -2] [0 0]))
+  (is (d9-northeast-of? [2 -1] [0 0]))
+  (is (d9-northeast-of? [2 -1] [0 0]))
+
+  (is (d9-northeast-of? [1 -2] [0 -1]))
+
+  (is (not (d9-northwest-of? [1 -2] [0 0])))
+  (is (not (d9-northwest-of? [2 -1] [0 0])))
+  (is (d9-northwest-of? [-1 -2] [0 0]))
+  (is (d9-northwest-of? [-2 -1] [0 0]))
+
+  (is (not (d9-southeast-of? [1 -2] [0 0])))
+  (is (not (d9-southeast-of? [2 -1] [0 0])))
+  (is (d9-southeast-of? [1 2] [0 0]))
+  (is (d9-southeast-of? [2 1] [0 0]))
+
+  (is (not (d9-southwest-of? [1 -2] [0 0])))
+  (is (not (d9-southwest-of? [2 -1] [0 0])))
+  (is (d9-southwest-of? [-1 2] [0 0]))
+  (is (d9-southwest-of? [-2 1] [0 0])))
+
+(def d9-rules
+  (o/ruleset
+   {::head
+    [:what
+     [::head ::x x]
+     [::head ::y y]
+
+     :then
+     (tap> [:HEAD :position [x y]])]
+
+    ::tail
+    [:what
+     [::tail ::x x]
+     [::tail ::y y]
+
+     :then
+     (tap> [:TAIL :position [x y]])]
+
+
+    ::map-boundaries
+    [:what
+     [::head ::x x]
+     [::head ::y y]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+     [::max ::y max-y {:then false}]
+     [::min ::y min-y {:then false}]
+     [::max ::x max-x {:then false}]
+     [::min ::x min-x {:then false}]
+
+     :then
+     (o/insert! ::max {::y (max max-y y tail-y)
+                       ::x (max max-x x tail-x)})
+     (o/insert! ::mi {::y (min min-y  y tail-y)
+                      ::x (min min-x  x tail-x)})]
+
+    ::shift-tail-north
+    [:what
+     [::head ::x head-x]
+     [::head ::y head-y]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+
+     :when
+     (not (d9-h-and-t-valid? [head-x head-y]
+                             [tail-y tail-y]))
+     (d9-north-of? [head-x head-y]
+                   [tail-x tail-y])
+
+     :then
+     (tap> [:shift :tail :north])
+     (o/insert! ::tail ::y (dec tail-y))]
+
+    ::shift-tail-south
+    [:what
+     [::head ::x head-x]
+     [::head ::y head-y]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+
+     :when
+     (not (d9-h-and-t-valid? [head-x head-y]
+                             [tail-y tail-y]))
+     (d9-south-of? [head-x head-y]
+                   [tail-x tail-y])
+
+     :then
+     (tap> [:shift :tail :south])
+     (o/insert! ::tail ::y (inc tail-y))]
+
+    ::shift-tail-west
+    [:what
+     [::head ::x head-x]
+     [::head ::y head-y]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+
+     :when
+     (not (d9-h-and-t-valid? [head-x head-y]
+                             [tail-y tail-y]))
+     (d9-west-of? [head-x head-y]
+                  [tail-x tail-y])
+
+     :then
+     (tap> [:shift :tail :west])
+     (o/insert! ::tail ::x (dec tail-x))]
+
+    ::shift-tail-east
+    [:what
+     [::head ::x head-x]
+     [::head ::y head-y]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+
+     :when
+     (not (d9-h-and-t-valid? [head-x head-y]
+                             [tail-y tail-y]))
+     (d9-east-of? [head-x head-y]
+                  [tail-x tail-y])
+
+     :then
+     (tap> [:shift :tail :east])
+     (o/insert! ::tail ::x (inc tail-x))]
+
+    ::shift-tail-northwest
+    [:what
+     [::head ::x head-x]
+     [::head ::y head-y]
+     [::tail ::x tail-x {:then false}]
+     [::tail ::y tail-y {:then false}]
+
+     :when
+     (not (d9-h-and-t-valid? [head-x head-y]
+                             [tail-y tail-y]))
+     (d9-northwest-of? [head-x head-y]
+                       [tail-x tail-y])
+
+     :then
+     (tap> [:shift :tail :north-west])
+     (o/insert! ::tail ::x (dec tail-x))
+     (o/insert! ::tail ::y (dec tail-y))]
+
+    ::shift-tail-northeast
+    [:what
+     [::head ::x head-x]
+     [::head ::y head-y]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+
+     :when
+     (not (d9-h-and-t-valid? [head-x head-y]
+                             [tail-y tail-y]))
+     (d9-northeast-of? [head-x head-y]
+                       [tail-x tail-y])
+
+     :then
+     (tap> [:shift :tail :north-east])
+     (o/insert! ::tail ::x (inc tail-x))
+     (o/insert! ::tail ::y (dec tail-y))]
+
+    ::shift-tail-southwest
+    [:what
+     [::head ::x head-x]
+     [::head ::y head-y]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+
+     :when
+     (not (d9-h-and-t-valid? [head-x head-y]
+                             [tail-y tail-y]))
+     (d9-southwest-of? [head-x head-y]
+                       [tail-x tail-y])
+
+     :then
+     (tap> [:shift :tail :south-west])
+     (o/insert! ::tail ::x (dec tail-x))
+     (o/insert! ::tail ::y (inc tail-y))]
+
+    ::shift-tail-southeast
+    [:what
+     [::head ::x head-x]
+     [::head ::y head-y]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+
+     :when
+     (not (d9-h-and-t-valid? [head-x head-y]
+                             [tail-y tail-y]))
+     (d9-southeast-of? [head-x head-y]
+                       [tail-x tail-y])
+
+     :then
+     (tap> [:shift :tail :south-east])
+     (o/insert! ::tail ::x (inc tail-x))
+     (o/insert! ::tail ::y (inc tail-y))]
+
+    ::move-head-up
+    [:what
+     [::head ::x head-x]
+     [::head ::y head-y {:then false}]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+     [::move ::head ::up]
+
+     :then
+     (if-not (d9-h-and-t-valid? [head-x head-y]
+                                [tail-y tail-y])
+       (tap> [:move :rejected :up])
+       (do
+         (tap> [:move :head :up])
+         (o/insert! ::head ::y (dec head-y))))]
+
+    ::move-head-down
+    [:what
+     [::move ::head ::down]
+     [::head ::x head-x]
+     [::head ::y head-y {:then false}]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+
+     :then
+     (if-not (d9-h-and-t-valid? [head-x head-y]
+                                [tail-y tail-y])
+       (tap> [:move :rejected :down])
+       (do
+         (tap> [:move :head :down])
+         (o/insert! ::head ::y (inc head-y))))]
+
+    ::move-head-left
+    [:what
+     [::head ::x head-x {:then false}]
+     [::head ::y head-y]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+     [::move ::head ::left]
+
+     :then
+     (if-not (d9-h-and-t-valid? [head-x head-y]
+                                [tail-y tail-y])
+       (tap> [:move :rejected :left])
+       (do
+         (tap> [:move :head :left])
+         (o/insert! ::head ::x (dec head-x))))]
+
+    ::move-head-right
+    [:what
+     [::head ::x head-x {:then false}]
+     [::head ::y head-y]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+     [::move ::head ::right]
+
+     :then
+     (if-not (d9-h-and-t-valid? [head-x head-y]
+                                [tail-y tail-y])
+       (tap> [:move :rejected :right])
+       (do
+         (tap> [:move :head :right])
+         (o/insert! ::head ::x (inc head-x))))
+
+]
+
+    ::print-position-map
+    [:what
+     [::head ::x head-x]
+     [::head ::y head-y]
+     [::tail ::x tail-x]
+     [::tail ::y tail-y]
+     [::max ::y max-y]
+     [::min ::y min-y]
+     [::max ::x max-x]
+     [::min ::x min-x]
+
+     :then
+     (let [valid? (d9-h-and-t-valid? [head-x head-y]
+                                     [tail-y tail-y])
+           map (apply str (->> (for [y (range min-y (inc max-y))
+                                     x (range min-x (inc max-x))
+                                     :let [eol? (= x max-x)]]
+                                 (str (cond
+                                        (= [x y] [head-x head-y])   \H
+                                        (= [x y] [tail-x tail-y])   \T
+                                        (= [x y] [0 0])             \s
+                                        :else                       \.)
+                                      (when eol? \newline)))))]
+       (o/insert! ::map ::position map)
+       (println (str "--------------------"
+                     (str "Printing a position map -------------------------\n"
+                          "Head: " head-x " " head-y "; Tail: " tail-x " " tail-y".\n"
+                          (if valid? "Valid." "Invalid.") "\n"
+                          map)
+                     "--------------------")))]
+
+    ::position-map
+    [:what [::map ::position the-map]]}))
+
+
+
+(defn d9-start-session
+  []
+  (tap> ["------------------------------------"])
+  (tap> [:starting :new :session ])
+  (tap> ["------------------------------------"])
+  (-> (reduce o/add-rule (o/->session) d9-rules)
+      (o/insert ::tail ::x 0)
+      (o/insert ::tail ::y 0)
+      (o/insert ::head ::x 0)
+      (o/insert ::head ::y 0)
+      (o/insert ::max {::x 3 ::y 3})
+      (o/insert ::min {::x -3 ::y -3})
+      (o/fire-rules)))
+
+(defn move-head
+  [session direction]
+  {:pre [(#{::right ::left ::up ::down} direction)]}
+  (-> session
+      (o/insert ::move ::head direction)
+      (o/fire-rules)))
+
+(comment
+
+  (d9-northeast-of? [1 -2] [-1 -1])
+
+  (let [r (-> (d9-start-session)
+              (move-head ::up)
+              (move-head ::up)
+              (move-head ::right)
+              (move-head ::right)
+              (move-head ::right))]
+    (println "\n\n----------------------------------------\n\n")
+    (println (:the-map (first (o/query-all r ::position-map))))
+    (clojure.pprint/pprint [[::tail (first (o/query-all r ::tail))]
+                            [::head (first (o/query-all r ::head))]])
+    (flush))
+
+
+  )
+
+(def d9-test-input "R 4
+U 4
+L 3
+D 1
+R 4
+D 1
+L 5
+R 2")
+
+(defn d9-parse-input
+  [input]
+  (->> input
+       str/split-lines
+       (map #(str/split % #" "))))
+
+(comment
+
+  (d9-parse-input d9-test-input)
+
+  )
+
+(comment
+
+  (add-tap (bound-fn* clojure.pprint/pprint))
+
+  (-> (d9-start-session)
+      (o/insert ::move ::head ::right))
+
+  (-> (reduce o/add-rule (o/->session) rules)
+      (o/insert ::tail ::x 0)
+      (o/insert ::tail ::y 0)
+      (o/insert ::head ::x 0)
+      (o/insert ::head ::y 0)
+      (o/fire-rules))
+
+  (-> (reduce o/add-rule (o/->session) rules)
+      (o/insert ::tail ::x 0)
+      (o/insert ::tail ::y 0)
+      (o/insert ::head ::x 1)
+      (o/insert ::head ::y 0)
+      (o/fire-rules))
+
+  (-> (reduce o/add-rule (o/->session) rules)
+      (o/insert ::tail ::x 0)
+      (o/insert ::tail ::y 0)
+      (o/insert ::head ::x 0)
+      (o/insert ::head ::y -2)
+      (o/fire-rules))
+
+
+
+  (def session (atom (reduce o/add-rule (o/->session) rules)))
+
+
+
+  (swap! session
+         (fn [session]
+           (-> session
+               (o/insert ::tail ::x 1)
+               (o/insert ::tail ::y 1)
+
+               (o/insert ::head ::x 0)
+               (o/insert ::head ::y 0)
+               (o/fire-rules))))
 
   )
