@@ -1097,8 +1097,8 @@ $ ls
      :then
      (o/insert! ::max {::y (max max-y head-y tail-y)
                        ::x (max max-x head-x tail-x)})
-     (o/insert! ::mi {::y (min min-y  head-y tail-y)
-                      ::x (min min-x  head-x tail-x)})]
+     (o/insert! ::min {::y (min min-y  head-y tail-y)
+                       ::x (min min-x  head-x tail-x)})]
 
     ::shift-tail-north
     [:what
@@ -1385,6 +1385,7 @@ $ ls
       (o/insert ::min {::x -3 ::y -3})
       (o/insert ::tail ::all-positions #{})
       (o/fire-rules)))
+
 
 (comment
 
