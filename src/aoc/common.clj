@@ -9,4 +9,4 @@
   (:body (http/get (format "https://adventofcode.com/%d/day/%d/input" year day)
                    {:cookies {"session" {:value @session-cookie}}})))
 
-(def day-input (memoize day-input))
+(def day-input (memoize day-input*))
