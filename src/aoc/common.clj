@@ -3,10 +3,13 @@
 
 (defonce session-cookie (atom (System/getenv "AOC_COOKIE")))
 
-(defn day-input*
+(defn- day-input*
   "Retrieves the input for the year/day combo. See `day-input`."
   [year day]
   (:body (http/get (format "https://adventofcode.com/%d/day/%d/input" year day)
                    {:cookies {"session" {:value @session-cookie}}})))
 
-(def day-input (memoize day-input*))
+
+(def ^{:doc      (:doc (meta #'day-input*))
+       :arglists (:arglists (meta #'day-input*))}
+  day-input (memoize day-input*))
