@@ -77,4 +77,41 @@ Distance:  9  40  200")
   (solution-1 example-input) ;; 288
   (solution-1 (-common/day-input 2023 6))
 
+  (parse-input example-input)
+
+  )
+
+(defn parse-line-2
+  [line]
+  (as-> line $
+    (str/split $ #":")
+    (second $)
+    (str/replace $ #"\s+" "")
+    (apply str $)
+    (Long/parseLong $)))
+
+(comment
+
+  (parse-line-2 "Time:      7  15   30")
+  (parse-line-2 "Distance:  9  40  200")
+
+  )
+
+(defn parse-input-2
+  [input]
+  (let [[time-line distance-line & _] (str/split-lines input)
+        race-time (parse-line-2 time-line)
+        distance (parse-line-2 distance-line)]
+    [race-time distance]))
+
+(defn solution-2
+  [input]
+  (let [[race-time distance] (parse-input-2 input)]
+    (count-winnable-button-times race-time distance)))
+
+(comment
+
+  (solution-2 example-input) ;; 71503
+  (solution-2 (-common/day-input 2023 6))
+
   )
