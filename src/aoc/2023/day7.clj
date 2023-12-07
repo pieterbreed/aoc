@@ -116,3 +116,85 @@ QQQJA 483")
   (solution-1 (-common/day-input 2023 7))
 
   )
+
+(def card-labels-2 (vec (reverse [\A \K \Q \T \9 \8 \7 \6 \5 \4 \3 \2 \1 \J])))
+
+(defn compare-card-2
+  [a b]
+  (compare (.indexOf card-labels-2 a)
+           (.indexOf card-labels-2 b)))
+
+
+
+(defn hand->type-2
+  "Takes a hand, and determines the type.
+  One of: :five-kind :four-kind :full-house :three-kind :two-pair :one-pair :high-card.
+  Allows J cards to be jokers to match the best outcome."
+  [hand]
+  (let [{nr-jokers \J
+         :as       card-counts} (into {}
+                          (x/by-key identity x/count)
+                          hand)
+        [highest next-highest & _]  (into []
+                                          (comp (map second)
+                                                (x/sort-by identity >))
+                                          (dissoc card-counts \J))
+        highest' (+ (or highest 0)
+                    (or nr-jokers 0))]
+    (cond
+      (= highest' 5)              :five-kind
+      (= highest' 4)              :four-kind
+      (and (= highest' 3)
+           (= next-highest 2))    :full-house
+      (and (= highest' 3)
+           (= next-highest 1))    :three-kind
+      (= 2 highest' next-highest) :two-pair
+      (and (= 2 highest')
+           (= 1 next-highest))    :one-pair
+      (= 1 highest')              :high-card)))
+
+(comment
+
+  (hand->type-2 "32T3K")
+  (hand->type-2 "T55J5")
+  (hand->type-2 "KK677")
+  (hand->type-2 "KTJJT")
+  (hand->type-2 "QQQJA")
+
+
+  )
+
+(defn compare-hand:type-2
+  [a b]
+  (compare-type (hand->type-2 a)
+                (hand->type-2 b)))
+
+(defn compare-hand:tie-break-2
+  [[a1 & arest :as a] [b1 & brest :as b]]
+  (cond
+    (= a b)            0
+    (not= a1 b1)       (compare-card-2 a1 b1)
+    :else              (recur arest brest)))
+
+(defn compare-hand-2
+  [a b]
+  (let [x (compare-hand:type-2 a b)]
+    (if-not (zero? x)
+      x
+      (compare-hand:tie-break-2 a b))))
+
+(defn solution-2
+  [input]
+  (->> input
+       (parse-input)
+       (sort-by first
+                compare-hand-2)
+       (map-indexed (fn [i [_ bid]] (* (inc i) bid)))
+       (reduce +)))
+
+(comment
+
+  (solution-2 example-input) ;; 5905
+  (solution-2 (-common/day-input 2023 7))
+
+  )
