@@ -231,9 +231,9 @@ XXX = (XXX, XXX)")
         all-ghosts (->> network
                         (keys)
                         (filterv #(str/ends-with? % "A")))
-        all-ghost-steps (->> all-ghosts
-                                (map (comp ghost-pattern->inf-steps
-                                           (partial find-ghost-pattern input-data))))]
+        all-ghost-steps (map (comp ghost-pattern->inf-steps
+                                   (partial find-ghost-pattern input-data))
+                             all-ghosts)]
     (loop [all-ghost-steps' all-ghost-steps]
       (let [current-steps (map first all-ghost-steps')
             current-max-ghost-step (apply max current-steps)
