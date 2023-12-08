@@ -236,7 +236,7 @@ XXX = (XXX, XXX)")
                              all-ghosts)]
     (loop [all-ghost-steps' all-ghost-steps]
       (let [current-steps (map first all-ghost-steps')
-            current-max-ghost-step (apply max current-steps)
+            current-max-ghost-step (reduce max current-steps)
             all-at-max? (every? (partial = current-max-ghost-step)
                                 current-steps)]
         (if all-at-max?
