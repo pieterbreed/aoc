@@ -241,8 +241,8 @@ XXX = (XXX, XXX)")
                                 current-steps)]
         (if all-at-max?
           current-max-ghost-step
-          (recur (mapv (partial drop-while #(< % current-max-ghost-step))
-                       all-ghost-steps')))))))
+          (recur (vec (pmap (partial drop-while #(< % current-max-ghost-step))
+                            all-ghost-steps'))))))))
 
 (comment
 
