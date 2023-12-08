@@ -1,7 +1,8 @@
 (ns aoc.2023.day8
   (:require [aoc.common :as -common]
             [clojure.string :as str]
-            [net.cgrand.xforms :as x]))
+            [net.cgrand.xforms :as x]
+            [clojure.core.async :as csp]))
 
 
 (def example-input-1
@@ -248,6 +249,44 @@ XXX = (XXX, XXX)")
 
   (solution-2-2 example-input-3) ;; 6
   (solution-2-2 (-common/day-input 2023 8))
+
+
+
+  )
+
+
+(defn solution-2-3
+  "Same as solution-2-2, but with more core.async."
+  [input]
+  (let [{:keys [network]
+         :as input-data}    (parse-input input)
+        all-ghosts (->> network
+                        (keys)
+                        (filterv #(str/ends-with? % "A")))
+        all-ghost-steps (map (comp ghost-pattern->inf-steps
+                                   (partial find-ghost-pattern input-data))
+                             all-ghosts)]
+    (loop [all-ghost-steps' all-ghost-steps]
+      (let [current-steps (map first all-ghost-steps')
+            current-max-ghost-step (reduce max current-steps)
+            all-at-max? (every? (partial = current-max-ghost-step)
+                                current-steps)]
+        (if all-at-max?
+          current-max-ghost-step
+          (let [all-drop-jobs (csp/thread
+                                (->> all-ghost-steps'
+                                     (map (fn [ghost-steps]
+                                            (csp/go (drop-while #(< % current-max-ghost-step)
+                                                                ghost-steps))))
+                                     (doall)
+                                     (map csp/<!!)
+                                     (vec)))]
+            (recur (csp/<!! all-drop-jobs))))))))
+
+(comment
+
+  (solution-2-3 example-input-3) ;; 6
+  (solution-2-3 (-common/day-input 2023 8))
 
 
 
