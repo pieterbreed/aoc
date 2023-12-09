@@ -76,3 +76,34 @@
   (solution-1 (-common/day-input 2023 9))
 
   )
+
+(defn predict-prev-value
+  [line]
+  (if (last-line? line)
+    0
+    (let [next-line (next-line line)
+          current-first (first line)
+          next-line-predicted-value (predict-prev-value next-line)]
+      (- current-first
+         next-line-predicted-value))))
+
+(comment
+
+  (predict-prev-value [10 13 16 21 30 45])
+
+  )
+
+(defn solution-2
+  [input]
+  (let [input-data (parse-input input)
+        r (sequence (comp (map predict-prev-value)
+                          (x/reduce +))
+                    input-data)]
+    (first r)))
+
+(comment
+
+  (solution-2 example-input) ;; 2
+  (solution-2 (-common/day-input 2023 9))
+
+  )
