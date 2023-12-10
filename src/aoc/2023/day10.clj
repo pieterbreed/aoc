@@ -63,30 +63,35 @@ LJ.LJ")
 
 (defn follow-segment
   "Takes the map data, current x and y, and which direction (:north, :south, :west, :east) entering the current x and y from."
-  [{:keys [lookup] :as map-data} [current-x current-y enter-from]]
-  (let [segment (lookup current-x current-y)]
-    (enter-from (case segment
-                  \| {:south [current-x       (dec current-y) :south]
-                      :north [current-x       (inc current-y) :north]}
-                  \- {:west  [(inc current-x) current-y       :west]
-                      :east  [(dec current-x) current-y       :east]}
-                  \L {:north [(inc current-x) current-y       :west]
-                      :east  [current-x       (dec current-y) :south]}
-                  \J {:north [(dec current-x) current-y       :east]
-                      :west  [current-x       (dec current-y) :south]}
-                  \7 {:south [(dec current-x) current-y       :east]
-                      :west  [current-x       (inc current-y) :north]}
-                  \F {:south [(inc current-x) current-y       :west]
-                      :east  [current-x       (inc current-y) :north]}
-                  nil))))
+  [{:keys [lookup] :as map-data}
+   {:keys [current-x current-y enter-from] :as state}]
+  (when state
+    (let [segment (lookup current-x current-y)]
+      (enter-from (case segment
+                    \| {:south {:current-x current-x       :current-y (dec current-y) :enter-from :south}
+                        :north {:current-x current-x       :current-y (inc current-y) :enter-from :north}}
+                    \- {:west  {:current-x (inc current-x) :current-y current-y       :enter-from :west}
+                        :east  {:current-x (dec current-x) :current-y current-y       :enter-from :east}}
+                    \L {:north {:current-x (inc current-x) :current-y current-y       :enter-from :west  :turn :left}
+                        :east  {:current-x current-x       :current-y (dec current-y) :enter-from :south :turn :right}}
+                    \J {:north {:current-x (dec current-x) :current-y current-y       :enter-from :east  :turn :right}
+                        :west  {:current-x current-x       :current-y (dec current-y) :enter-from :south :turn :left}}
+                    \7 {:south {:current-x (dec current-x) :current-y current-y       :enter-from :east  :turn :left}
+                        :west  {:current-x current-x       :current-y (inc current-y) :enter-from :north :turn :right}}
+                    \F {:south {:current-x (inc current-x) :current-y current-y       :enter-from :west  :turn :right}
+                        :east  {:current-x current-x       :current-y (inc current-y) :enter-from :north :turn :left}}
+                    nil)))))
 
 (comment
 
   (def map-data (parse-map example-input-4))
   (def pos (atom nil))
 
-  (reset! pos [1 2 :west])
+  (reset! pos {:current-x 1 :current-y  2  :enter-from :west})
   (swap! pos (partial follow-segment map-data))
+
+
+
 
   )
 
@@ -94,16 +99,15 @@ LJ.LJ")
   "Takse parsed map-input, and returns 2 vectors [x y :direction] from which pipe navigation may start."
   [{[s-x s-y] :S
     [size-x size-y] :size
-    :keys     [S lookup]
     :as       map-data}]
   (filter some? [(when (< s-x (dec size-x))
-                   (follow-segment map-data [(inc s-x) s-y :west]))
+                   (follow-segment map-data {:current-x (inc s-x) :current-y s-y :enter-from :west}))
                  (when (> s-x 0)
-                   (follow-segment map-data [(dec s-x) s-y :east]))
+                   (follow-segment map-data {:current-x (dec s-x) :current-y s-y :enter-from :east}))
                  (when (< s-y (dec size-y))
-                   (follow-segment map-data [s-x (inc s-y) :north]))
+                   (follow-segment map-data {:current-x s-x :current-y (inc s-y) :enter-from :north}))
                  (when (> s-y 0)
-                   (follow-segment map-data [s-x (dec s-y) :south]))]))
+                   (follow-segment map-data {:current-x s-x :current-y (dec s-y) :enter-from :south}))]))
 
 (comment
 
@@ -116,10 +120,10 @@ LJ.LJ")
 (defn solution-1
   [input]
   (let [map-data (parse-map input)
-        [dir1 & _] (find-starting-options map-data)]
+        [first-position & _ :as _starting-options] (find-starting-options map-data)]
     (/ (loop [steps 2
-              dir   dir1]
-         (let [next-step (follow-segment map-data dir)]
+              position first-position]
+         (let [next-step (follow-segment map-data position)]
            (if-not next-step
              steps
              (recur (inc steps)
@@ -136,3 +140,12 @@ LJ.LJ")
   (solution-1 (-common/day-input 2023 10))
 
   )
+
+(defn walk-the-pipes
+  [map-data]
+  (let [[state & _ :as probably-two-valid-positions-after-two-steps] (find-starting-options map-data)]
+    (iteration (fn [{:keys [enter-from] :as step}]
+                 (when step
+                   (let [next-step (follow-segment map-data enter-from)])
+                   ))
+               :initk state)))
