@@ -167,6 +167,8 @@
 
 
 (defn solution-2
+  "Run-time : Long!
+  Thinking time : Much Longer."
   [input factor]
   (let [map-data (parse-starmap-1 input :expansion-factor factor)
         galaxies (find-galaxies-with-coords map-data)
@@ -177,6 +179,8 @@
 
 (comment
 
-  (solution-2 example-input-1 10)
+  (solution-2 example-input-1 10) ;; 1030
+  (solution-2 example-input-1 100)  ;; 8410
+  (solution-2 (-common/day-input 2023 11) 1000000)
 
   )
