@@ -151,8 +151,13 @@
   [records times]
   (->> records
        (mapv (fn [{:keys [parts checksum]}]
-               {:parts (vec (take (* times (count parts))
-                                  (cycle parts)))
+               {:parts (->> (constantly parts)
+                            (repeatedly times)
+                            (reduce (fn [parts1 parts2]
+                                      (concat parts1
+                                              [:?]
+                                              parts2)))
+                            (vec))
                 :checksum (vec (take (* times (count checksum))
                                      (cycle checksum)))}))))
 
@@ -283,11 +288,45 @@
            (count valid-possibilities))
          (reduce +))))
 
+(defn solution-2-2
+  [input & {:keys [scale]
+            :or   {scale 1}}]
+  (let [records (parse-input input)
+        records (unfold-records records scale)]
+    (->> records
+         (pmap #(count (parsed-row->row-possibilities-2 %)))
+         (reduce +))))
+
+(defn solution-2-3
+  [input & {:keys [scale]
+            :or   {scale 1}}]
+  (let [records (parse-input input)
+        records (unfold-records records scale)]
+    (->> records
+         (map #(csp/thread (count (parsed-row->row-possibilities-2 %))))
+         (doall)
+         (map #(csp/<!! %))
+         (reduce +))))
+
 (comment
 
   (solution-2 example-input-2) ;; 21
-  (solution-2 example-input-2 :scale 5)
-  (solution-2 (-common/day-input 2023 12))
-  (solution-2 (-common/day-input 2023 12) :scale 5)
+  (time (solution-2 example-input-2 :scale 5)) ;; 525152
+  ;; "Elapsed time: 116613.233741 msecs"
+
+  (solution-2-2 example-input-2) ;; 21
+  (time (solution-2-2 example-input-2 :scale 5)) ;; 525152
+  ;; "Elapsed time: 109590.860098 msecs"
+
+  (solution-2-3 example-input-2) ;; 21
+  (time (solution-2-3 example-input-2 :scale 5)) ;; 525152
+  ;; "Elapsed time: 120607.892229 msecs"
+
+  (time (solution-2 (-common/day-input 2023 12))) ;; answer for puzzle 1
+  ;; "Elapsed time: 2852.983524 msecs"
+  ;;
+  ;; Compare with (time (solution-1 (-common/day-input 2023 12))) above
+  ;; "Elapsed time: 20393.964303 msecs"
+  (time (solution-2 (-common/day-input 2023 12) :scale 5))
 
   )
