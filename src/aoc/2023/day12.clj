@@ -60,6 +60,8 @@
             possibility (single-calc-children-possibilities)]
         (concat [option] possibility)))))
 
+
+
 (comment
 
   {:parts [:? :? :? :. :# :# :#], :checksum [1 1 3]}
@@ -70,6 +72,15 @@
   {:parts [:? :# :# :# :? :? :? :? :? :? :? :?], :checksum [3 2 1]}
 
   (parsed-row->row-possibilities [:? :? :? :. :# :# :#])
+
+  ;;  {(:# :# :# :. :# :# :#)
+  ;;   (:# :# :. :. :# :# :#)
+  ;;   (:# :. :# :. :# :# :#)
+  ;;   (:# :. :. :. :# :# :#)
+  ;;   (:. :# :# :. :# :# :#)
+  ;;   (:. :# :. :. :# :# :#)
+  ;;   (:. :. :# :. :# :# :#)
+  ;;   (:. :. :. :. :# :# :#)}
 
   )
 
@@ -124,9 +135,62 @@
          (map second)
          (reduce +))))
 
+
 (comment
 
   (solution-1 example-input-2) ;; 21
   (solution-1 (-common/day-input 2023 12))
+
+  )
+
+(defn unfold-records
+  [records times]
+  (->> records
+       (mapv (fn [{:keys [parts checksum]}]
+               {:parts (vec (take (* times (count parts))
+                                  (cycle parts)))
+                :checksum (vec (take (* times (count checksum))
+                                     (cycle checksum)))}))))
+
+(defn count-row-possibilities
+  [[current-part & rest-of-the-parts :as _parts-list]]
+  (let [single-calc-children-possibilities (memoize
+                                            #(count-row-possibilities rest-of-the-parts))]
+    (cond
+      ;; current-part is not-nil
+      ;; terminate recursion here
+      (nil? rest-of-the-parts)
+      (if (= current-part :?)
+        2
+        1)
+
+      (not= current-part :?)
+      (single-calc-children-possibilities)
+
+      (= current-part :?)
+      (* 2 (single-calc-children-possibilities)))))
+
+(comment
+
+  (count-row-possibilities [:. :? :? :. :. :? :? :. :. :. :? :# :# :.])
+
+  )
+
+(defn solution-2
+  [input]
+  (let [records (parse-input input)
+        records (unfold-records records 5)]
+    (->> (for [{:keys [checksum parts]}   records
+               :let [all-possibilities (parsed-row->row-possibilities parts)
+                     valid-ones (->> all-possibilities
+                                     (filter #(= checksum (partslist->checksum %)))
+                                     (count))]]
+           [parts valid-ones])
+         (map second)
+         (reduce +))))
+
+(comment
+
+  (solution-2 example-input-2)
 
   )
