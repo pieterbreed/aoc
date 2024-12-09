@@ -13,3 +13,6 @@
 (def ^{:doc      (:doc (meta #'day-input*))
        :arglists (:arglists (meta #'day-input*))}
   day-input (memoize day-input*))
+
+
+(def whitespace-regex #"\p{Zs}+")

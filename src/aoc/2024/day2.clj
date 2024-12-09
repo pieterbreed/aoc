@@ -68,3 +68,28 @@
   (sol1 (-common/day-input 2024 2))
 
   )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn safe-report2?
+  [report]
+  (let [cases (concat [report]
+                      (for [i (range (count report))
+                            :let [[a b] (split-at i report)]]
+                        (concat a (rest b))))]
+    (some #(or ((every-pred gradually? decreasing?) %)
+               ((every-pred gradually? increasing?) %))
+          cases)))
+
+(defn sol2
+  [input]
+  (->> (parse-input input)
+       (filter safe-report2?)
+       (count)))
+
+(comment
+
+  (sol2 input-1)
+  (sol2 (-common/day-input 2024 2))
+
+  )
