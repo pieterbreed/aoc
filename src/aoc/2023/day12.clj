@@ -111,9 +111,12 @@
       checksum
       (conj checksum counted-parts))))
 
+;; (def partslist->checksum* (memoize partslist->checksum))
+
 (comment
 
   (partslist->checksum (list :# :# :# :. :# :# :#)) ;; [3 3]
+  (partslist->checksum* (list :# :# :# :. :# :# :#));; [3 3]
   (partslist->checksum (list :# :. :# :. :# :# :#)) ;; [1 1 3]
 
   #_[(:# :# :# :. :# :# :#)
@@ -319,8 +322,9 @@
   ;; "Elapsed time: 109590.860098 msecs"
 
   (solution-2-3 example-input-2) ;; 21
-  (time (solution-2-3 example-input-2 :scale 5)) ;; 525152
+  (time (solution-2-3 example-input-2 :scale 5)) ;;
   ;; "Elapsed time: 120607.892229 msecs"
+  ;; "Elapsed time: 112067.140277 msecs"
 
   (time (solution-2 (-common/day-input 2023 12))) ;; answer for puzzle 1
   ;; "Elapsed time: 2852.983524 msecs"
@@ -328,5 +332,10 @@
   ;; Compare with (time (solution-1 (-common/day-input 2023 12))) above
   ;; "Elapsed time: 20393.964303 msecs"
   (time (solution-2 (-common/day-input 2023 12) :scale 5))
+
+  (let [r (time (solution-2-3 (-common/day-input 2023 12)
+                              :scale 5))]
+    (println (str "part 2 result:" r))
+    (spit "part2-result.txt" (str r)))
 
   )
