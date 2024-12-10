@@ -178,17 +178,6 @@ MXMXAXMASX")
       (boolean (and (some #{"MAS"} (hash-set diag diagr))
                     (some #{"MAS"} (hash-set counter-diag counter-diagr)))))))
 
-(comment
-
-  (def input-2 "M.S
-.A.
-M.S")
-
-  (xmas? (parse-input input-2) 0 0)
-
-
-  )
-
 (defn sol2
   [{:as   parsed-input
     :keys [width
@@ -202,7 +191,26 @@ M.S")
 
 (comment
 
-  (sol2 (parse-input input-1))
-  (sol2 (parse-input (-common/day-input 2024 4)))
+  (def input-2 "M.S
+.A.
+M.S")
+
+  (xmas? (parse-input input-2) 0 0)  ;; true
+
+  (with-out-str (print  input-1))
+  ;; 1MMMSXXMASM
+  ;; MSAMXMSMSA
+  ;; AMXSXMAAMM
+  ;; MSAMASMSMX
+  ;; XMASAMXAMM
+  ;; XXAMMXXAMA
+  ;; SMSMSASXSS
+  ;; SAXAMASAAA
+  ;; MAMMMXMMMM
+  ;; MXMXAXMASX
+
+  (sol2 (parse-input input-1)) ;; 9
+
+  (sol2 (parse-input (-common/day-input 2024 4))) ;; ...
 
   )

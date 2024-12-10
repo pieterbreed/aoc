@@ -16,3 +16,9 @@
 
 
 (def whitespace-regex #"\p{Zs}+")
+
+(defn vector-of-strs->vector-of-long
+  ([]
+   (map (fn [vstrs] (mapv Long/parseLong vstrs))))
+  ([xs]
+   (map (fn [xs] (mapv Long/parseLong xs)) xs)))
