@@ -155,3 +155,54 @@ MXMXAXMASX")
   (count-all-occurences-of-xmas (parse-input (-common/day-input 2024 4))) 
 
   )
+
+(defn xmas?
+  "Part 2 definition. Is the block with top-left at col row an xmas block?"
+  [{:as   _parsed-input
+    :keys [width
+           nr-lines
+           layout]}
+   col row]
+
+  (when (and (<= 0 col (- width 3))
+             (<= 0 row (- nr-lines 3)))
+    (let [diag (str (get-in layout [(+ row 0) (+ col 0)])
+                    (get-in layout [(+ row 1) (+ col 1)])
+                    (get-in layout [(+ row 2) (+ col 2)]))
+          diagr (apply str (reverse diag))
+
+          counter-diag (str (get-in layout [(+ row 2) (+ col 0)])
+                            (get-in layout [(+ row 1) (+ col 1)])
+                            (get-in layout [(+ row 0) (+ col 2)]))
+          counter-diagr (apply str (reverse counter-diag))]
+      (boolean (and (some #{"MAS"} (hash-set diag diagr))
+                    (some #{"MAS"} (hash-set counter-diag counter-diagr)))))))
+
+(comment
+
+  (def input-2 "M.S
+.A.
+M.S")
+
+  (xmas? (parse-input input-2) 0 0)
+
+
+  )
+
+(defn sol2
+  [{:as   parsed-input
+    :keys [width
+           nr-lines]}]
+
+  (reduce +
+          (for [col (range (- width 2))
+                row (range (- nr-lines 2))
+                :when (xmas? parsed-input col row)]
+            1)))
+
+(comment
+
+  (sol2 (parse-input input-1))
+  (sol2 (parse-input (-common/day-input 2024 4)))
+
+  )
