@@ -106,9 +106,8 @@
                 (long)
                 (inc))
         groups (for [size (get group-sizes b10)
-                     :let [nr-groups (quot b10 size)
-                           x         (math/pow 10 size)]]
-                 (loop [r      n
+                     :let [x (math/pow 10 size)]]
+                 (loop [r n
                         groups []]
                    (if (< r 1)
                      groups
