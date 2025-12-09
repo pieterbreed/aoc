@@ -51,6 +51,7 @@
   (area #{[7 1] [11 7]}) ;; 35
   (area #{[7 3] [2 3]}) ;; 6
   (area #{[2 5] [11 1]}) ;; 50
+  (area #{[9 7] [9 5]}) ;; 3
 
   )
 
@@ -175,5 +176,66 @@
 
   (println (draw-canvas (draw-outline-to-canvas (-common/day-input 2025 9))))
 
+
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn solve-2:point-inside?
+  "Is the `_point` literally inside the _area? IE, inside, not on the border of..."
+  [[[x1 y1] [x2 y2] :as _area]
+   [px py :as _point]]
+  (and (< (min x1 x2) px (max x1 x2))
+       (< (min y1 y2) py (max y1 y2))))
+
+(comment
+
+  (solve-2:point-inside? [[7 1] [11 3]] [8 2]) ;; true
+  (solve-2:point-inside? [[7 1] [11 3]] [7 1]) ;; false
+  (solve-2:point-inside? [[7 1] [11 3]] [6 1]) ;; false
+  (solve-2:point-inside? [[7 1] [11 3]] [12 0]) ;; false
+  (solve-2:point-inside? [[7 1] [11 3]] [10 2]) ;; true
+  (solve-2:point-inside? [[7 1] [11 3]] [11 4]) ;; false
+  (solve-2:point-inside? [[7 1] [11 3]] [7 3]) ;; false
+  (solve-2:point-inside? [[7 1] [11 3]] [10 2]) ;; true
+
+  )
+
+(defn solve-2
+  [input]
+  (let [input            (parse-input input)
+        looped-input     (concat input [(first input)])
+        all-pairs        (all-pairs-and-areas input)
+        edge-pairs       (map vector
+                              looped-input
+                              (rest looped-input))
+        all-edge-points  (into #{}
+                               (mapcat #(points-on-line (first %) (second %))
+                                       edge-pairs))
+        valid-pairs      (->> all-pairs
+                              ;; filter out any corners that are outright inside
+                              (filter (complement (fn [[_ corner1 _ corner2 _area]]
+                                                    (some #(solve-2:point-inside? [corner1 corner2] %)
+                                                          input))))
+                              ;; filter out any edges that are inside
+                              (filter (complement (fn [[_ corner1 _ corner2 _area]]
+                                                    (some #(solve-2:point-inside? [corner1 corner2] %)
+                                                          all-edge-points)))))]
+    (last (reduce (fn [[_ _ _ _ max-area :as old]
+                       [_ _ _ _ area     :as new]]
+                    (if (< max-area area)
+                      new
+                      old))
+                  valid-pairs))))
+
+(comment
+
+  (all-pairs-and-areas )
+  (parse-input test-input)
+
+  ;; [[7 1] [11 1] [11 7] [9 7] [9 5] [2 5] [2 3] [7 3]]
+
+  (solve-2 test-input) ;; 24
+  (solve-2 (-common/day-input 2025 9)) ;;
 
   )
