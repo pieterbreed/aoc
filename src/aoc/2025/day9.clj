@@ -6,6 +6,7 @@
    [clojure.string :as str]
    [clojure.math :as math]
    [net.cgrand.xforms :as x]
+   [clojure.java.io :as io]
    ))
 
 (def test-input
@@ -29,33 +30,31 @@
 
   (parse-input test-input)
 
-
   )
 
-(defn distance'
-  [points-set]
-  (let [[[x1 y1 :as _p1]
-         [x2 y2 :as _p2]] (vec points-set)]
-    (math/sqrt (+ (* (- x1 x2) (- x1 x2))
-                  (* (- y1 y2) (- y1 y2))))))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(def distance (memoize distance'))
+(defn area'
+  ([points-set]
+   (let [[[x1 y1 :as _p1]
+          [x2 y2 :as _p2]] (vec points-set)]
+     (area [x1 y1] [x2 y2])))
+  ([[x1 y1] [x2 y2]]
+   (* (inc (abs (- x1 x2)))
+      (inc (abs (- y1 y2))))))
 
-(defn area
-  [points-set]
-  (let [[[x1 y1 :as _p1]
-         [x2 y2 :as _p2]] (vec points-set)]
-    (* (inc (abs (- x1 x2)))
-       (inc (abs (- y1 y2))))))
+(def area (memoize area')) ;; NOTE: This is totally unnecessary...
 
 (comment
 
-  (area #{[2 5] [9 7]}) ;; 14
+  (area #{[2 5] [9 7]}) ;; 24
   (area #{[7 1] [11 7]}) ;; 35
   (area #{[7 3] [2 3]}) ;; 6
   (area #{[2 5] [11 1]}) ;; 50
 
   )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn all-pairs-and-areas
   [input]
@@ -76,6 +75,8 @@
 
   )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defn solve-1
   [input]
   (let [input (parse-input input)
@@ -90,6 +91,8 @@
   (solve-1 (-common/day-input 2025 9)) ;;
 
   )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defn points-on-line
   [[x1 y1 :as _p1] [x2 y2 :as _p2]]
@@ -119,36 +122,53 @@
 
   )
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(def ^:dynamic *blank-canvas* {:red  #{} :green #{}})
+
 (defn draw-outline-to-canvas
   "Draws the input (outline) onto an area (return value)"
-  [input]
-  (let [input (parse-input input)
-        input' (conj input (first input)) ;; add the first point at the end, to complete the last line
+  [canvas input]
+  (let [input' (conj input (first input)) ;; add the first point at the end, to complete the last line
         ]
     (loop [cp             (first input')
            [nxt & rst]    (rest input')
-           canvas        #{}]
-      (if-not nxt canvas
+           canvas'        canvas]
+      (if-not nxt canvas'
               (recur nxt
                      rst
-                     (into canvas (points-on-line cp nxt)))))))
+                     (-> canvas'
+                         (update :green into (points-on-line cp nxt))
+                         (update :red   into [cp])))))))
 
-(defn draw-canvas
-  [canvas]
-  (let [min-x (->> canvas (map first) (reduce min) (dec))
-        max-x (->> canvas (map first) (reduce max) (inc))
-        min-y (->> canvas (map second) (reduce min) (dec))
-        max-y (->> canvas (map second) (reduce max) (inc))
-        fos (java.io.FileOutputStream. "test2.txt")]
-    (doseq [y (range min-y (inc max-y))
-            :let [sb (StringBuilder.)]]
-      (doseq [x (range min-x (inc max-x))]
-        (.append sb (if (canvas [x y]) "X" ".")))
-      (.append sb "\n")
-      (.write fos (.getBytes (.toString sb))))
-    (.close fos)))
+;; the thing racing has taught me is that, when you are fast, the fast lives in your head
+;; when you are slow, your mind also is slow
+
+(defn canvas->text-file
+  [{:as canvas :keys [red green]}
+   file-name]
+  (let [points (set/union red green)
+        min-x  (->> points (map first)  (reduce min) (dec))
+        max-x  (->> points (map first)  (reduce max) (inc))
+        min-y  (->> points (map second) (reduce min) (dec))
+        max-y  (->> points (map second) (reduce max) (inc))]
+    (with-open [s (io/output-stream (java.io.File. file-name))]
+      (doseq [y (range min-y
+                       (inc max-y))]
+        (let [sb (StringBuilder.)]
+          (doseq [x (range min-x
+                           (inc max-x))]
+            (.append sb (str (cond
+                               ((:red canvas)   [x y]) "🟥"
+                               ((:green canvas) [x y]) "🟩"
+                               :else                   "⬛"))))
+
+          (.write s (.getBytes (str (.toString sb) "\n"))))))))
 
 (comment
+
+  (canvas->text-file (draw-outline-to-canvas *blank-canvas* (parse-input test-input))
+                     "test.txt")
 
   (draw-canvas (draw-outline-to-canvas test-input))
   (draw-canvas (draw-outline-to-canvas (-common/day-input 2025 9)))
